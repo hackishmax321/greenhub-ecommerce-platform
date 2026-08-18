@@ -16,6 +16,7 @@ class PocketBaseRepository extends IRepository {
   async authenticate() {
     try {
       const { email, password } = environment.database.pocketbase;
+      console.log(email,password)
       if (email && password) {
         await this.client.admins.authWithPassword(email, password);
         console.log(`[PocketBase] Authenticated for collection: ${this.collectionName}`);
@@ -132,6 +133,99 @@ class PocketBaseRepository extends IRepository {
     }
     return conditions.join(' && ');
   }
+
+  async search(query, options = {}) {
+    try {
+      const { page = 1, perPage = 20, sort = '-created' } = options;
+      
+      // Build search filter
+      let filter = '';
+      if (query) {
+        const searchTerms = query
+          .split(' ')
+          .filter(term => term.length > 0)
+          .map(term => `(name ~ "${term}" || description ~ "${term}" || tags ~ "${term}")`)
+          .join(' && ');
+        filter = searchTerms;
+      }
+
+      const records = await this.client.collection(this.collectionName).getList(page, perPage, {
+        filter: filter,
+        sort: sort,
+        expand: options.expand || '',
+      });
+
+      return records;
+    } catch (error) {
+      throw new Error(`PocketBase search failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get products by category
+   */
+  async findByCategory(category, options = {}) {
+    try {
+      const { page = 1, perPage = 20 } = options;
+      const filter = `category = "${category}"`;
+      
+      const records = await this.client.collection(this.collectionName).getList(page, perPage, {
+        filter: filter,
+        sort: '-created',
+      });
+
+      return records;
+    } catch (error) {
+      throw new Error(`PocketBase findByCategory failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update stock quantity
+   */
+  async updateStock(productId, quantity, operation = 'decrement') {
+    try {
+      const product = await this.findById(productId);
+      if (!product) {
+        throw new Error('Product not found');
+      }
+
+      let newQuantity;
+      if (operation === 'decrement') {
+        newQuantity = product.stockQuantity - quantity;
+        if (newQuantity < 0) {
+          throw new Error('Insufficient stock');
+        }
+      } else {
+        newQuantity = product.stockQuantity + quantity;
+      }
+
+      const updated = await this.update(productId, {
+        stockQuantity: newQuantity,
+        isInStock: newQuantity > 0,
+      });
+
+      return updated;
+    } catch (error) {
+      throw new Error(`Stock update failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get featured products
+   */
+  async getFeatured(limit = 10) {
+    try {
+      const records = await this.client.collection(this.collectionName).getList(1, limit, {
+        filter: 'isFeatured = true && status = "published"',
+        sort: '-created',
+      });
+      return records;
+    } catch (error) {
+      throw new Error(`Failed to get featured products: ${error.message}`);
+    }
+  }
+
 }
 
 module.exports = PocketBaseRepository;

@@ -13,8 +13,8 @@ const logger = require('./utils/logger');
 
 // Import routes
 const authRoutes = require('./routes/v1/auth.route');
-const productRoutes = require('./routes/v1/auth.route');
-const orderRoutes = require('./routes/v1/auth.route');
+const productRoutes = require('./routes/v1/product.route');
+const orderRoutes = require('./routes/v1/order.route');
 
 const app = express();
 
