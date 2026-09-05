@@ -1,7 +1,4 @@
-/**
- * User Model (DTO - Data Transfer Object)
- * This represents the business entity, not DB-specific
- */
+
 class User {
   constructor(data) {
     this.id = data.id;
@@ -13,6 +10,9 @@ class User {
     this.isActive = data.isActive !== undefined ? data.isActive : true;
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
+    
+    // MongoDB specific fields (optional)
+    this._id = data._id;
   }
 
   // Remove sensitive data when sending to client

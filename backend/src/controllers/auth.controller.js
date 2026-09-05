@@ -1,3 +1,4 @@
+// src/controllers/auth.controller.js
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
@@ -8,7 +9,16 @@ const logger = require('../utils/logger');
 
 class AuthController {
   constructor() {
-    this.userRepository = RepositoryFactory.getRepository('users');
+    // Don't initialize repository in constructor
+    this._userRepository = null;
+  }
+
+  // Lazy getter for user repository
+  get userRepository() {
+    if (!this._userRepository) {
+      this._userRepository = RepositoryFactory.getRepository('users');
+    }
+    return this._userRepository;
   }
 
   async register(req, res, next) {

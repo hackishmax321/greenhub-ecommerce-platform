@@ -1,5 +1,9 @@
+const { MongoClient } = require('mongodb');
 const environment = require('./environment');
 const logger = require('../utils/logger');
+
+let client = null;
+let db = null;
 
 /**
  * Initialize database connection based on DB_TYPE
@@ -12,16 +16,27 @@ const initializeDatabase = async () => {
     switch (dbType) {
       case 'pocketbase':
         // PocketBase is initialized lazily via the repository
-        // No connection pooling needed
         logger.info('PocketBase repository ready (lazy connection)');
         break;
       
       case 'mongodb':
-        // Example MongoDB initialization
-        // const { MongoClient } = require('mongodb');
-        // const client = new MongoClient(environment.database.mongodb.uri);
-        // await client.connect();
-        // global.mongoClient = client;
+        // MongoDB initialization
+        const mongoUri = environment.database.mongodb.uri;
+        const options = environment.database.mongodb.options;
+        
+        client = new MongoClient(mongoUri, options);
+        await client.connect();
+        
+        db = client.db();
+        logger.info('MongoDB connected successfully');
+        
+        // Test the connection
+        await db.command({ ping: 1 });
+        logger.info('MongoDB ping successful');
+        
+        // Store client and db in global for reuse
+        global.mongoClient = client;
+        global.mongoDb = db;
         break;
       
       case 'postgres':
@@ -44,4 +59,32 @@ const initializeDatabase = async () => {
   }
 };
 
-module.exports = initializeDatabase;
+// Helper functions to get client and db
+const getMongoClient = () => {
+  if (!client) {
+    throw new Error('MongoDB client not initialized');
+  }
+  return client;
+};
+
+const getMongoDb = () => {
+  if (!db) {
+    throw new Error('MongoDB database not initialized');
+  }
+  return db;
+};
+
+// Close database connection
+const closeDatabase = async () => {
+  if (client) {
+    await client.close();
+    logger.info('MongoDB connection closed');
+  }
+};
+
+module.exports = {
+  initializeDatabase,
+  getMongoClient,
+  getMongoDb,
+  closeDatabase
+};

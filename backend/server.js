@@ -1,9 +1,7 @@
 const app = require('./src/app');
 const environment = require('./src/config/environment');
 const logger = require('./src/utils/logger');
-
-// Import DB initialization (if needed)
-const initializeDatabase = require('./src/config/database');
+const { initializeDatabase, closeDatabase } = require('./src/config/database');
 
 const PORT = environment.port;
 const HOST = environment.host;
@@ -33,7 +31,6 @@ const startServer = async () => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   logger.error('Unhandled Rejection:', err);
-  // In production, you might want to gracefully shutdown
   if (environment.nodeEnv === 'production') {
     process.exit(1);
   }
@@ -48,8 +45,18 @@ process.on('uncaughtException', (err) => {
 });
 
 // Graceful shutdown
-const shutdown = () => {
+const shutdown = async () => {
   logger.info('Received shutdown signal, closing server...');
+  
+  // Close database connection
+  try {
+    await closeDatabase();
+    logger.info('Database connection closed');
+  } catch (error) {
+    logger.error('Error closing database:', error);
+  }
+  
+  // Close server
   if (server) {
     server.close(() => {
       logger.info('Server closed successfully');
