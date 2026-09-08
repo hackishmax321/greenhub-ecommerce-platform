@@ -1,3 +1,4 @@
+const { ObjectId } = require('mongodb');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -6,7 +7,8 @@ const { v4: uuidv4 } = require('uuid');
  */
 class Product {
   constructor(data) {
-    this.id = data.id || uuidv4();
+    // MongoDB will generate _id, but we'll keep a reference
+    this.id = data.id || data._id || new ObjectId().toString();
     this.sku = data.sku || this.generateSKU(data.name);
     this.name = data.name;
     this.description = data.description || '';
@@ -58,6 +60,9 @@ class Product {
     
     // Metadata
     this.metadata = data.metadata || {};
+    
+    // Store original UUID if coming from migration
+    this.originalId = data.originalId || null;
   }
 
   /**
@@ -149,6 +154,8 @@ class Product {
     const Joi = require('joi');
     
     const schema = Joi.object({
+      id: Joi.string(),
+      sku: Joi.string(),
       name: Joi.string().required().min(3).max(200),
       description: Joi.string().max(5000),
       price: Joi.number().positive().required(),
@@ -191,6 +198,7 @@ class Product {
         keywords: Joi.array().items(Joi.string()),
       }),
       metadata: Joi.object(),
+      originalId: Joi.string(),
     });
 
     return schema.validate(data, { abortEarly: false });
