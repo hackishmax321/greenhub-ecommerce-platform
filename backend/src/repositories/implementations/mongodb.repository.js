@@ -1,4 +1,3 @@
-// src/repositories/implementations/mongodb.repository.js
 const { ObjectId } = require('mongodb');
 const { getMongoDb } = require('../../config/database');
 const logger = require('../../utils/logger');
@@ -42,23 +41,65 @@ class MongoRepository {
 
   /**
    * Convert domain object to MongoDB document
+   * Handle both UUID and existing ObjectId
    */
   _toDocument(data) {
-    const { id, ...rest } = data;
-    if (id) {
-      return {
-        _id: new ObjectId(id),
-        ...rest
-      };
+    const { id, _id, ...rest } = data;
+    
+    // If there's an _id, keep it as is
+    if (_id) {
+      return { _id, ...rest };
     }
-    return rest;
+    
+    // If there's an id, try to convert it
+    if (id) {
+      try {
+        // Check if it's a valid ObjectId
+        if (ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+          return { _id: new ObjectId(id), ...rest };
+        }
+        // If it's a UUID (like from pocketbase), store it as a string field
+        // and let MongoDB generate its own _id
+        return { 
+          _id: new ObjectId(), // Generate new ObjectId for MongoDB
+          uuid: id, // Store the original UUID as a separate field
+          ...rest 
+        };
+      } catch (error) {
+        // If conversion fails, generate a new ObjectId
+        return { 
+          _id: new ObjectId(),
+          uuid: id,
+          ...rest 
+        };
+      }
+    }
+    
+    // No id provided, generate one
+    return { _id: new ObjectId(), ...rest };
   }
 
   /**
    * Find one document by filter
+   * Can search by 'id' field as well
    */
   async findOne(filter) {
     try {
+      // If filter has 'id', convert to search in both 'id' and 'uuid' fields
+      if (filter.id) {
+        const idValue = filter.id;
+        delete filter.id;
+        // Search in both _id, id, and uuid fields
+        const result = await this.collection.findOne({
+          $or: [
+            { _id: ObjectId.isValid(idValue) && /^[0-9a-fA-F]{24}$/.test(idValue) ? new ObjectId(idValue) : null },
+            { uuid: idValue },
+            { id: idValue }
+          ].filter(condition => condition !== null)
+        });
+        return this._toDomain(result);
+      }
+      
       const result = await this.collection.findOne(filter);
       return this._toDomain(result);
     } catch (error) {
@@ -88,11 +129,21 @@ class MongoRepository {
   }
 
   /**
-   * Find by ID
+   * Find by ID (handles both ObjectId and UUID)
    */
   async findById(id) {
     try {
-      const result = await this.collection.findOne({ _id: new ObjectId(id) });
+      let query = {};
+      
+      // Try to use as ObjectId if valid
+      if (ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+        query = { _id: new ObjectId(id) };
+      } else {
+        // Search by uuid or id field
+        query = { $or: [{ uuid: id }, { id: id }] };
+      }
+      
+      const result = await this.collection.findOne(query);
       return this._toDomain(result);
     } catch (error) {
       logger.error(`MongoDB findById error on ${this.collectionName}:`, error);
@@ -106,9 +157,10 @@ class MongoRepository {
   async create(data) {
     try {
       const document = this._toDocument(data);
-      // Remove _id if it exists and is invalid
-      if (document._id && !ObjectId.isValid(document._id)) {
-        delete document._id;
+      
+      // Remove any 'id' field if it exists and is not a valid ObjectId
+      if (document.id) {
+        delete document.id;
       }
       
       const result = await this.collection.insertOne(document);
@@ -127,10 +179,25 @@ class MongoRepository {
    */
   async update(id, data) {
     try {
-      const { id: _, ...updateData } = this._toDocument(data);
+      const { id: _, _id: __, ...updateData } = data;
+      
+      let query = {};
+      if (ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+        query = { _id: new ObjectId(id) };
+      } else {
+        query = { $or: [{ uuid: id }, { id: id }] };
+      }
+      
+      // Remove id field from update data if it exists
+      delete updateData.id;
+      
+      // Add updated timestamp if not provided
+      if (!updateData.updatedAt) {
+        updateData.updatedAt = new Date().toISOString();
+      }
       
       const result = await this.collection.findOneAndUpdate(
-        { _id: new ObjectId(id) },
+        query,
         { $set: updateData },
         { 
           returnDocument: 'after',
@@ -150,7 +217,14 @@ class MongoRepository {
    */
   async delete(id) {
     try {
-      const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
+      let query = {};
+      if (ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+        query = { _id: new ObjectId(id) };
+      } else {
+        query = { $or: [{ uuid: id }, { id: id }] };
+      }
+      
+      const result = await this.collection.deleteOne(query);
       return result.deletedCount > 0;
     } catch (error) {
       logger.error(`MongoDB delete error on ${this.collectionName}:`, error);
@@ -195,7 +269,11 @@ class MongoRepository {
    */
   async bulkInsert(documents) {
     try {
-      const docs = documents.map(doc => this._toDocument(doc));
+      const docs = documents.map(doc => {
+        const docData = this._toDocument(doc);
+        delete docData.id; // Remove id field
+        return docData;
+      });
       const result = await this.collection.insertMany(docs);
       return result.insertedCount;
     } catch (error) {
@@ -215,6 +293,127 @@ class MongoRepository {
       logger.info(`Indexes created for ${this.collectionName}`);
     } catch (error) {
       logger.error(`MongoDB createIndexes error on ${this.collectionName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search products by text
+   */
+  async search(searchTerm, options = {}) {
+    try {
+      const { page = 1, perPage = 20, sort = '-createdAt' } = options;
+      
+      const searchFilter = {
+        $or: [
+          { name: { $regex: searchTerm, $options: 'i' } },
+          { description: { $regex: searchTerm, $options: 'i' } },
+          { sku: { $regex: searchTerm, $options: 'i' } },
+          { tags: { $regex: searchTerm, $options: 'i' } },
+        ]
+      };
+
+      const results = await this.find(searchFilter, { limit: perPage, skip: (page - 1) * perPage, sort });
+      const total = await this.count(searchFilter);
+
+      return {
+        items: results,
+        totalItems: total,
+        page,
+        perPage,
+        totalPages: Math.ceil(total / perPage),
+      };
+    } catch (error) {
+      logger.error(`MongoDB search error on ${this.collectionName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find products by category
+   */
+  async findByCategory(category, options = {}) {
+    try {
+      const { page = 1, perPage = 20, sort = '-createdAt' } = options;
+      
+      const results = await this.find(
+        { category }, 
+        { limit: perPage, skip: (page - 1) * perPage, sort }
+      );
+      const total = await this.count({ category });
+
+      return {
+        items: results,
+        totalItems: total,
+        page,
+        perPage,
+        totalPages: Math.ceil(total / perPage),
+      };
+    } catch (error) {
+      logger.error(`MongoDB findByCategory error on ${this.collectionName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get featured products
+   */
+  async getFeatured(limit = 10) {
+    try {
+      return await this.find(
+        { isFeatured: true, status: 'published' },
+        { limit, sort: { createdAt: -1 } }
+      );
+    } catch (error) {
+      logger.error(`MongoDB getFeatured error on ${this.collectionName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update product stock
+   */
+  async updateStock(productId, quantity, operation = 'decrement') {
+    try {
+      const product = await this.findById(productId);
+      if (!product) {
+        throw new Error(`Product with ID ${productId} not found`);
+      }
+
+      let newStock;
+      if (operation === 'decrement') {
+        if (product.stockQuantity < quantity) {
+          throw new Error(`Insufficient stock. Available: ${product.stockQuantity}`);
+        }
+        newStock = product.stockQuantity - quantity;
+      } else if (operation === 'increment') {
+        newStock = product.stockQuantity + quantity;
+      } else {
+        newStock = quantity;
+      }
+
+      const updateData = {
+        stockQuantity: newStock,
+        isInStock: newStock > 0,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const updated = await this.update(productId, updateData);
+      return updated;
+    } catch (error) {
+      logger.error(`MongoDB updateStock error on ${this.collectionName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get product by SKU
+   */
+  async findBySku(sku) {
+    try {
+      return await this.findOne({ sku });
+    } catch (error) {
+      logger.error(`MongoDB findBySku error on ${this.collectionName}:`, error);
       throw error;
     }
   }

@@ -18,10 +18,10 @@ class ProductService {
         throw new Error(`Validation failed: ${error.message}`);
       }
 
-      // Create product instance
+      // Create product instance (without generating UUID)
       const product = new Product(value);
       
-      // Save to database
+      // Save to database - MongoDB will generate its own _id
       const savedProduct = await this.productRepository.create(product);
       
       logger.info(`Product created: ${savedProduct.name} (${savedProduct.id})`);
@@ -53,7 +53,7 @@ class ProductService {
    */
   async getProductBySku(sku) {
     try {
-      const product = await this.productRepository.findOne({ sku });
+      const product = await this.productRepository.findBySku(sku);
       if (!product) {
         throw new Error(`Product with SKU ${sku} not found`);
       }
@@ -83,15 +83,21 @@ class ProductService {
         });
       }
 
-      // Otherwise, use findAll with filters
-      const products = await this.productRepository.findAll({
-        ...filter,
+      // Otherwise, use find with filters
+      const results = await this.productRepository.find(filter, {
+        limit: perPage,
+        skip: (page - 1) * perPage,
+        sort: this._buildSortObject(sort),
+      });
+      const total = await this.productRepository.count(filter);
+
+      return {
+        items: results,
+        totalItems: total,
         page,
         perPage,
-        sort,
-      });
-
-      return products;
+        totalPages: Math.ceil(total / perPage),
+      };
     } catch (error) {
       logger.error('Get products failed:', error);
       throw error;
@@ -206,13 +212,22 @@ class ProductService {
    */
   async bulkCreateProducts(productsData) {
     try {
-      const results = [];
+      const products = [];
       const errors = [];
 
       for (const data of productsData) {
         try {
-          const product = await this.createProduct(data);
-          results.push(product);
+          const { error, value } = Product.validate(data);
+          if (error) {
+            errors.push({
+              data,
+              error: error.message,
+            });
+            continue;
+          }
+
+          const product = new Product(value);
+          products.push(product);
         } catch (error) {
           errors.push({
             data,
@@ -221,17 +236,42 @@ class ProductService {
         }
       }
 
+      // Bulk insert if there are products
+      let inserted = [];
+      if (products.length > 0) {
+        inserted = await this.productRepository.bulkInsert(products);
+      }
+
       return {
-        success: results,
+        success: inserted,
         failed: errors,
         total: productsData.length,
-        succeeded: results.length,
+        succeeded: products.length,
         failedCount: errors.length,
       };
     } catch (error) {
       logger.error('Bulk create products failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Build sort object from sort string
+   */
+  _buildSortObject(sort) {
+    if (typeof sort === 'string') {
+      const sortObj = {};
+      const fields = sort.split(',');
+      for (const field of fields) {
+        if (field.startsWith('-')) {
+          sortObj[field.substring(1)] = -1;
+        } else {
+          sortObj[field] = 1;
+        }
+      }
+      return sortObj;
+    }
+    return sort || { createdAt: -1 };
   }
 }
 
