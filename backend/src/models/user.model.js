@@ -1,18 +1,25 @@
+// src/models/user.model.js
+const { ObjectId } = require('mongodb');
+
 /**
  * User Model (DTO - Data Transfer Object)
  * This represents the business entity, not DB-specific
  */
 class User {
   constructor(data) {
-    this.id = data.id;
+    // Use MongoDB ObjectId instead of custom ID
+    this.id = data.id || data._id || new ObjectId().toString();
     this.email = data.email;
     this.password = data.password; // Will be hashed
     this.firstName = data.firstName;
     this.lastName = data.lastName;
-    this.role = data.role || 'customer'; // 'customer' | 'admin'
+    this.role = data.role || 'customer';
     this.isActive = data.isActive !== undefined ? data.isActive : true;
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
+    
+    // Store original UUID if coming from PocketBase migration
+    this.originalId = data.originalId || null;
   }
 
   // Remove sensitive data when sending to client

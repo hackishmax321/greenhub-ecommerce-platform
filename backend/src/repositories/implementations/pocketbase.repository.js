@@ -32,16 +32,25 @@ class PocketBaseRepository extends IRepository {
 
   async create(data) {
     try {
-      // Add timestamps if PocketBase doesn't auto-add them
-      const record = await this.client.collection(this.collectionName).create({
-        ...data,
-        id: data.id || uuidv4(),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      });
+      console.log(data)
+      console.log('Creating record in collection:', this.collectionName);
+      console.log('Data being sent:', JSON.stringify(data, null, 2));
+      console.log(data)
+      const record = await this.client.collection(this.collectionName).create(data);
+      // console.log('Record created successfully:', record.id);
       return record;
     } catch (error) {
-      throw new Error(`PocketBase create failed: ${error.message}`);
+      // Log detailed error information
+      console.error('PocketBase create failed:', {
+        message: error.message,
+        status: error.status,
+        data: error.data,
+        collection: this.collectionName,
+        requestData: data
+      });
+      
+      // Throw a more informative error
+      throw new Error(`PocketBase create failed: ${error.message} - ${error.data?.message || ''}`);
     }
   }
 
@@ -108,31 +117,25 @@ class PocketBaseRepository extends IRepository {
 
   // Helper to convert filter object to PocketBase filter string
   buildFilterString(filter) {
-    if (!filter || Object.keys(filter).length === 0) return '';
+  if (!filter || Object.keys(filter).length === 0) return '';
+  
+  const conditions = [];
+  for (const [key, value] of Object.entries(filter)) {
+    if (key === 'page' || key === 'perPage' || key === 'sort' || key === 'expand') continue;
     
-    const conditions = [];
-    for (const [key, value] of Object.entries(filter)) {
-      if (key === 'page' || key === 'perPage' || key === 'sort' || key === 'expand') continue;
-      
-      if (typeof value === 'string') {
-        conditions.push(`${key} = "${value}"`);
-      } else if (typeof value === 'number' || typeof value === 'boolean') {
-        conditions.push(`${key} = ${value}`);
-      } else if (Array.isArray(value)) {
-        // For array filters (e.g., category in ['a', 'b'])
-        const values = value.map(v => `"${v}"`).join(',');
-        conditions.push(`${key} in (${values})`);
-      } else if (value && typeof value === 'object') {
-        // Range filters (e.g., price > 100)
-        if (value.gt) conditions.push(`${key} > ${value.gt}`);
-        if (value.gte) conditions.push(`${key} >= ${value.gte}`);
-        if (value.lt) conditions.push(`${key} < ${value.lt}`);
-        if (value.lte) conditions.push(`${key} <= ${value.lte}`);
-        if (value.ne) conditions.push(`${key} != ${value.ne}`);
-      }
+    if (typeof value === 'string') {
+      // Handle email and other string fields properly
+      conditions.push(`${key} = "${value}"`);
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      conditions.push(`${key} = ${value}`);
+    } else if (Array.isArray(value)) {
+      const values = value.map(v => `"${v}"`).join(',');
+      conditions.push(`${key} in (${values})`);
     }
-    return conditions.join(' && ');
   }
+  // Use '&&' for PocketBase
+  return conditions.join(' && ');
+}
 
   async search(query, options = {}) {
     try {

@@ -1,6 +1,7 @@
+// src/controllers/auth.controller.js
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
+const { ObjectId } = require('mongodb');
 const RepositoryFactory = require('../repositories/factory');
 const User = require('../models/user.model');
 const environment = require('../config/environment');
@@ -8,7 +9,14 @@ const logger = require('../utils/logger');
 
 class AuthController {
   constructor() {
-    this.userRepository = RepositoryFactory.getRepository('users');
+    this._userRepository = null;
+  }
+
+  get userRepository() {
+    if (!this._userRepository) {
+      this._userRepository = RepositoryFactory.getRepository('users');
+    }
+    return this._userRepository;
   }
 
   async register(req, res, next) {
@@ -28,14 +36,17 @@ class AuthController {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Create user
+      // Create user - MongoDB will generate its own ObjectId
       const userData = new User({
-        id: uuidv4(),
+        // Don't set id - let MongoDB generate it
         email,
         password: hashedPassword,
         firstName,
         lastName,
         role: 'customer',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       const user = await this.userRepository.create(userData);
@@ -47,6 +58,7 @@ class AuthController {
         data: user.toJSON ? user.toJSON() : user,
       });
     } catch (error) {
+      logger.error('Registration error:', error);
       next(error);
     }
   }
@@ -90,6 +102,7 @@ class AuthController {
         },
       });
     } catch (error) {
+      logger.error('Login error:', error);
       next(error);
     }
   }

@@ -1,3 +1,4 @@
+// src/config/environment.js
 const dotenv = require('dotenv');
 const path = require('path');
 
@@ -10,13 +11,33 @@ const environment = {
   host: process.env.HOST || 'localhost',
   
   database: {
-    type: process.env.DB_TYPE || 'pocketbase',
+    type: process.env.DB_TYPE || 'mongodb',
+    mongodb: {
+      uri: process.env.MONGODB_URI || 'mongodb+srv://hackishmax321_db_user:Ton6UuhUtTy4HBhv@cluster0.qs3sqnq.mongodb.net/?appName=Cluster0',
+      options: {
+        // REMOVE these deprecated options:
+        // useNewUrlParser: true,      // ❌ REMOVE - no longer needed
+        // useUnifiedTopology: true,   // ❌ REMOVE - no longer needed
+        
+        // Keep only these valid options
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        maxIdleTimeMS: 45000,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 10000,
+        retryWrites: true,
+        retryReads: true,
+        // For Atlas, you might want to add:
+        tls: true,
+        tlsAllowInvalidCertificates: false,
+      }
+    },
     pocketbase: {
       url: process.env.POCKETBASE_URL || 'http://localhost:8090',
       email: process.env.POCKETBASE_EMAIL,
       password: process.env.POCKETBASE_PASSWORD,
     },
-    // Extend for other DBs here
   },
   
   jwt: {
