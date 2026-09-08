@@ -1,3 +1,4 @@
+const { ObjectId } = require('mongodb');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -29,7 +30,8 @@ const PaymentStatus = {
  */
 class Order {
   constructor(data) {
-    this.id = data.id || uuidv4();
+    // MongoDB will generate _id, but we'll keep a reference
+    this.id = data.id || data._id || new ObjectId().toString();
     this.orderNumber = data.orderNumber || this.generateOrderNumber();
     
     // Customer information
@@ -103,6 +105,9 @@ class Order {
     
     // Metadata
     this.metadata = data.metadata || {};
+    
+    // Store original UUID if coming from migration
+    this.originalId = data.originalId || null;
   }
 
   /**
@@ -250,6 +255,7 @@ class Order {
     const Joi = require('joi');
     
     const itemSchema = Joi.object({
+      id: Joi.string(),
       productId: Joi.string().required(),
       name: Joi.string().required(),
       sku: Joi.string(),
@@ -275,6 +281,8 @@ class Order {
     });
 
     const schema = Joi.object({
+      id: Joi.string(),
+      orderNumber: Joi.string(),
       userId: Joi.string().required(),
       customer: customerSchema.required(),
       shippingAddress: addressSchema.required(),
@@ -287,6 +295,7 @@ class Order {
       shippingMethod: Joi.string().valid('standard', 'express', 'overnight').default('standard'),
       customerNote: Joi.string().max(500),
       metadata: Joi.object(),
+      originalId: Joi.string(),
     });
 
     return schema.validate(data, { abortEarly: false });
