@@ -34,7 +34,7 @@ class OrderService {
       const subtotal = value.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const total = subtotal - (value.discount || 0) + (value.tax || 0) + (value.shippingCost || 0);
 
-      // Create order instance
+      // Create order instance (without generating UUID)
       const order = new Order({
         ...value,
         subtotal,
@@ -43,7 +43,7 @@ class OrderService {
         paymentStatus: Order.PaymentStatus.PENDING,
       });
 
-      // Save order
+      // Save order - MongoDB will generate its own _id
       const savedOrder = await this.orderRepository.create(order);
 
       // Deduct stock for each item
@@ -98,14 +98,21 @@ class OrderService {
     try {
       const { page = 1, perPage = 20, sort = '-createdAt' } = options;
       
-      const orders = await this.orderRepository.findAll({
-        userId,
+      const filter = { userId };
+      const results = await this.orderRepository.find(filter, {
+        limit: perPage,
+        skip: (page - 1) * perPage,
+        sort: this._buildSortObject(sort),
+      });
+      const total = await this.orderRepository.count(filter);
+
+      return {
+        items: results,
+        totalItems: total,
         page,
         perPage,
-        sort,
-      });
-
-      return orders;
+        totalPages: Math.ceil(total / perPage),
+      };
     } catch (error) {
       logger.error(`Get orders for user ${userId} failed:`, error);
       throw error;
@@ -119,14 +126,35 @@ class OrderService {
     try {
       const { page = 1, perPage = 20, sort = '-createdAt' } = options;
       
-      const orders = await this.orderRepository.findAll({
-        ...filters,
+      // Build filter
+      const filter = { ...filters };
+      
+      // Handle date range
+      if (filter.createdAt) {
+        const dateFilter = {};
+        if (filter.createdAt.gte) {
+          dateFilter.$gte = new Date(filter.createdAt.gte);
+        }
+        if (filter.createdAt.lte) {
+          dateFilter.$lte = new Date(filter.createdAt.lte);
+        }
+        filter.createdAt = dateFilter;
+      }
+
+      const results = await this.orderRepository.find(filter, {
+        limit: perPage,
+        skip: (page - 1) * perPage,
+        sort: this._buildSortObject(sort),
+      });
+      const total = await this.orderRepository.count(filter);
+
+      return {
+        items: results,
+        totalItems: total,
         page,
         perPage,
-        sort,
-      });
-
-      return orders;
+        totalPages: Math.ceil(total / perPage),
+      };
     } catch (error) {
       logger.error('Get orders failed:', error);
       throw error;
@@ -244,30 +272,84 @@ class OrderService {
    */
   async getOrderStatistics() {
     try {
-      // This would typically use aggregation queries
-      // For PocketBase, we'll fetch and calculate
-      const orders = await this.orderRepository.findAll({ perPage: 1000 });
-      const items = orders.items || [];
-
-      const totalOrders = items.length;
-      const totalRevenue = items.reduce((sum, order) => sum + (order.total || 0), 0);
+      // Get all orders
+      const orders = await this.orderRepository.find({});
+      
+      const totalOrders = orders.length;
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-      const statusCounts = items.reduce((acc, order) => {
+      // Status counts
+      const statusCounts = orders.reduce((acc, order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
       }, {});
+
+      // Payment status counts
+      const paymentStatusCounts = orders.reduce((acc, order) => {
+        acc[order.paymentStatus] = (acc[order.paymentStatus] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Orders by date (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const recentOrders = orders.filter(order => 
+        new Date(order.createdAt) >= thirtyDaysAgo
+      );
 
       return {
         totalOrders,
         totalRevenue,
         averageOrderValue,
         statusCounts,
+        paymentStatusCounts,
+        recentOrdersCount: recentOrders.length,
+        ordersByDate: this._groupOrdersByDate(recentOrders),
       };
     } catch (error) {
       logger.error('Get order statistics failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Group orders by date
+   */
+  _groupOrdersByDate(orders) {
+    const grouped = {};
+    orders.forEach(order => {
+      const date = new Date(order.createdAt).toISOString().split('T')[0];
+      if (!grouped[date]) {
+        grouped[date] = {
+          count: 0,
+          revenue: 0,
+        };
+      }
+      grouped[date].count++;
+      grouped[date].revenue += order.total || 0;
+    });
+    return grouped;
+  }
+
+  /**
+   * Build sort object from sort string
+   */
+  _buildSortObject(sort) {
+    if (typeof sort === 'string') {
+      const sortObj = {};
+      const fields = sort.split(',');
+      for (const field of fields) {
+        if (field.startsWith('-')) {
+          sortObj[field.substring(1)] = -1;
+        } else {
+          sortObj[field] = 1;
+        }
+      }
+      return sortObj;
+    }
+    return sort || { createdAt: -1 };
   }
 }
 
