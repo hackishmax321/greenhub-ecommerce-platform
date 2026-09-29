@@ -1,0 +1,1304 @@
+{
+  "info": {
+    "name": "E-Commerce Backend API",
+    "description": "Complete API testing suite for e-commerce backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/health",
+          "host": ["{{BASE_URL}}"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('User registered successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('email');",
+                  "  pm.expect(jsonData.data.email).to.eql('test@example.com');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"Password123!\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/register",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Admin User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Admin registered successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('email');",
+                  "});",
+                  "",
+                  "// Save admin email for later use",
+                  "pm.environment.set('adminEmail', 'admin@example.com');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"Admin123!\",\n    \"firstName\": \"Admin\",\n    \"lastName\": \"User\",\n    \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/register",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Login successful', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('token');",
+                  "  pm.expect(jsonData.data).to.have.property('user');",
+                  "});",
+                  "",
+                  "// Save token for authenticated requests",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('userToken', jsonData.data.token);",
+                  "pm.environment.set('userId', jsonData.data.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Admin login successful', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('token');",
+                  "});",
+                  "",
+                  "// Save admin token",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('adminToken', jsonData.data.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Product Management",
+      "item": [
+        {
+          "name": "Create Product (Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Product created successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('id');",
+                  "  pm.expect(jsonData.data).to.have.property('name');",
+                  "  pm.expect(jsonData.data.name).to.eql('Premium Wireless Headphones');",
+                  "  pm.expect(jsonData.data).to.have.property('sku');",
+                  "  pm.expect(jsonData.data.price).to.eql(299.99);",
+                  "});",
+                  "",
+                  "// Save product ID for later use",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('productId', jsonData.data.id);",
+                  "pm.environment.set('productSku', jsonData.data.sku);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Premium Wireless Headphones\",\n    \"description\": \"High-quality wireless headphones with active noise cancellation and 30-hour battery life.\",\n    \"price\": 299.99,\n    \"compareAtPrice\": 399.99,\n    \"costPerItem\": 150.00,\n    \"category\": \"Electronics\",\n    \"subcategory\": \"Audio\",\n    \"brand\": \"SoundMax\",\n    \"tags\": [\"wireless\", \"audio\", \"premium\", \"noise-cancelling\"],\n    \"images\": [\n        {\n            \"url\": \"https://example.com/images/headphones-1.jpg\",\n            \"alt\": \"Premium Wireless Headphones - Front view\",\n            \"isPrimary\": true\n        },\n        {\n            \"url\": \"https://example.com/images/headphones-2.jpg\",\n            \"alt\": \"Premium Wireless Headphones - Side view\",\n            \"isPrimary\": false\n        }\n    ],\n    \"variants\": [\n        {\n            \"id\": \"variant-black\",\n            \"name\": \"Black\",\n            \"price\": 299.99,\n            \"stock\": 30,\n            \"attributes\": {\n                \"color\": \"Black\",\n                \"size\": \"Standard\"\n            }\n        },\n        {\n            \"id\": \"variant-silver\",\n            \"name\": \"Silver\",\n            \"price\": 299.99,\n            \"stock\": 20,\n            \"attributes\": {\n                \"color\": \"Silver\",\n                \"size\": \"Standard\"\n            }\n        }\n    ],\n    \"stockQuantity\": 50,\n    \"lowStockThreshold\": 5,\n    \"weight\": 0.45,\n    \"dimensions\": {\n        \"length\": 20,\n        \"width\": 18,\n        \"height\": 8\n    },\n    \"status\": \"published\",\n    \"isFeatured\": true,\n    \"isDigital\": false,\n    \"seo\": {\n        \"title\": \"Premium Wireless Headphones | SoundMax\",\n        \"description\": \"Experience superior sound quality with our premium wireless headphones. Shop now!\",\n        \"keywords\": [\"wireless headphones\", \"noise cancelling\", \"premium audio\"]\n    },\n    \"metadata\": {\n        \"warranty\": \"2 years\",\n        \"batteryLife\": \"30 hours\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Another Product (Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Product created successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('id');",
+                  "  pm.expect(jsonData.data.name).to.eql('Smart Fitness Tracker');",
+                  "});",
+                  "",
+                  "// Save second product ID",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('productId2', jsonData.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Smart Fitness Tracker\",\n    \"description\": \"Advanced fitness tracker with heart rate monitor, GPS, and sleep tracking.\",\n    \"price\": 149.99,\n    \"category\": \"Wearables\",\n    \"brand\": \"FitTech\",\n    \"tags\": [\"fitness\", \"wearable\", \"health\", \"smart\"],\n    \"stockQuantity\": 100,\n    \"status\": \"published\",\n    \"isFeatured\": true\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Third Product - Electronics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Product created successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('id');",
+                  "  pm.expect(jsonData.data.category).to.eql('Electronics');",
+                  "});",
+                  "",
+                  "// Save third product ID",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('productId3', jsonData.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"4K Action Camera\",\n    \"description\": \"Waterproof 4K action camera with image stabilization and Wi-Fi connectivity.\",\n    \"price\": 249.99,\n    \"compareAtPrice\": 299.99,\n    \"category\": \"Electronics\",\n    \"brand\": \"ActionPro\",\n    \"tags\": [\"camera\", \"4k\", \"waterproof\", \"adventure\"],\n    \"stockQuantity\": 75,\n    \"status\": \"published\",\n    \"isFeatured\": false\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Products retrieved successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('items');",
+                  "  pm.expect(jsonData.data.items).to.be.an('array');",
+                  "  pm.expect(jsonData.data.items.length).to.be.at.least(3);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products?page=1&perPage=10",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Product details retrieved', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('id');",
+                  "  pm.expect(jsonData.data).to.have.property('name');",
+                  "  pm.expect(jsonData.data).to.have.property('price');",
+                  "  pm.expect(jsonData.data).to.have.property('stockQuantity');",
+                  "  pm.expect(jsonData.data).to.have.property('isAvailable');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products/{{productId}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products", "{{productId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product By SKU",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Product found by SKU', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('sku');",
+                  "  pm.expect(jsonData.data.sku).to.eql(pm.environment.get('productSku'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products/sku/{{productSku}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products", "sku", "{{productSku}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Products By Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Products filtered by category', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('items');",
+                  "  pm.expect(jsonData.data.items).to.be.an('array');",
+                  "  // All items should have category 'Electronics'",
+                  "  jsonData.data.items.forEach(item => {",
+                  "    pm.expect(item.category).to.eql('Electronics');",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products/category/Electronics",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products", "category", "Electronics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Featured Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Featured products retrieved', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('items');",
+                  "  // Featured products should be marked as featured",
+                  "  jsonData.data.items.forEach(item => {",
+                  "    pm.expect(item.isFeatured).to.be.true;",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products/featured?limit=5",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products", "featured"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Search results returned', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('items');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products?search=headphones",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "headphones"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product Stock (Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Stock updated successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('stockQuantity');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity\": 5,\n    \"operation\": \"decrement\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products/{{productId}}/stock",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products", "{{productId}}", "stock"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Order Management",
+      "item": [
+        {
+          "name": "Create Order (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Order created successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('id');",
+                  "  pm.expect(jsonData.data).to.have.property('orderNumber');",
+                  "  pm.expect(jsonData.data).to.have.property('total');",
+                  "  pm.expect(jsonData.data).to.have.property('status');",
+                  "  pm.expect(jsonData.data.status).to.eql('pending');",
+                  "});",
+                  "",
+                  "// Save order ID for later use",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('orderId', jsonData.data.id);",
+                  "pm.environment.set('orderNumber', jsonData.data.orderNumber);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"items\": [\n        {\n            \"productId\": \"{{productId}}\",\n            \"name\": \"Premium Wireless Headphones\",\n            \"price\": 299.99,\n            \"quantity\": 1,\n            \"image\": \"https://example.com/images/headphones-1.jpg\",\n            \"options\": {\n                \"color\": \"Black\",\n                \"warranty\": \"2 years\"\n            }\n        },\n        {\n            \"productId\": \"{{productId2}}\",\n            \"name\": \"Smart Fitness Tracker\",\n            \"price\": 149.99,\n            \"quantity\": 2,\n            \"image\": \"https://example.com/images/fitness-tracker.jpg\"\n        }\n    ],\n    \"shippingAddress\": {\n        \"street\": \"123 Main Street\",\n        \"city\": \"New York\",\n        \"state\": \"NY\",\n        \"postalCode\": \"10001\",\n        \"country\": \"USA\"\n    },\n    \"billingAddress\": {\n        \"street\": \"123 Main Street\",\n        \"city\": \"New York\",\n        \"state\": \"NY\",\n        \"postalCode\": \"10001\",\n        \"country\": \"USA\"\n    },\n    \"paymentMethod\": \"credit_card\",\n    \"shippingMethod\": \"express\",\n    \"customerNote\": \"Please leave at front door\",\n    \"discount\": 0,\n    \"tax\": 35.00,\n    \"shippingCost\": 15.00\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Orders retrieved successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('items');",
+                  "  pm.expect(jsonData.data.items).to.be.an('array');",
+                  "  pm.expect(jsonData.data.items.length).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders?page=1&perPage=10",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order By ID (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Order details retrieved', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('id');",
+                  "  pm.expect(jsonData.data).to.have.property('orderNumber');",
+                  "  pm.expect(jsonData.data).to.have.property('items');",
+                  "  pm.expect(jsonData.data).to.have.property('total');",
+                  "  pm.expect(jsonData.data).to.have.property('status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders/{{orderId}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders", "{{orderId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order By Number (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Order found by number', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('orderNumber');",
+                  "  pm.expect(jsonData.data.orderNumber).to.eql(pm.environment.get('orderNumber'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders/number/{{orderNumber}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders", "number", "{{orderNumber}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Summary (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Order summary retrieved', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('totalOrders');",
+                  "  pm.expect(jsonData.data).to.have.property('totalSpent');",
+                  "  pm.expect(jsonData.data).to.have.property('pendingOrders');",
+                  "  pm.expect(jsonData.data).to.have.property('recentOrders');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders/summary",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders", "summary"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Order (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Order cancelled successfully', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('status');",
+                  "  pm.expect(jsonData.data.status).to.eql('cancelled');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Changed my mind, found a better deal\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders/{{orderId}}/cancel",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders", "{{orderId}}", "cancel"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Admin Operations",
+      "item": [
+        {
+          "name": "Get All Orders (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('All orders retrieved', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('items');",
+                  "  pm.expect(jsonData.data.items).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders/admin",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders", "admin"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Statistics (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Statistics retrieved', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('totalOrders');",
+                  "  pm.expect(jsonData.data).to.have.property('totalRevenue');",
+                  "  pm.expect(jsonData.data).to.have.property('averageOrderValue');",
+                  "  pm.expect(jsonData.data).to.have.property('statusCounts');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders/admin/stats",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders", "admin", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Status (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Order status updated', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('status');",
+                  "  pm.expect(jsonData.data.status).to.eql('processing');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"processing\",\n    \"note\": \"Order is being processed by warehouse team\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders/admin/{{orderId}}/status",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders", "admin", "{{orderId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Payment Status (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Payment status updated', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('paymentStatus');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"paymentStatus\": \"paid\",\n    \"paymentDetails\": {\n        \"transactionId\": \"txn_123456789\",\n        \"paymentMethod\": \"credit_card\",\n        \"paidAt\": \"2024-01-15T10:30:00Z\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders/admin/{{orderId}}/payment",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders", "admin", "{{orderId}}", "payment"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Create Products (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Bulk products created', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.true;",
+                  "  pm.expect(jsonData.data).to.have.property('succeeded');",
+                  "  pm.expect(jsonData.data).to.have.property('failed');",
+                  "  pm.expect(jsonData.data.succeeded).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"products\": [\n        {\n            \"name\": \"Wireless Mouse\",\n            \"description\": \"Ergonomic wireless mouse with adjustable DPI\",\n            \"price\": 49.99,\n            \"category\": \"Electronics\",\n            \"brand\": \"TechGear\",\n            \"stockQuantity\": 200,\n            \"status\": \"published\"\n        },\n        {\n            \"name\": \"USB-C Hub\",\n            \"description\": \"7-in-1 USB-C hub with 4K HDMI, SD card reader\",\n            \"price\": 79.99,\n            \"category\": \"Electronics\",\n            \"brand\": \"ConnectPro\",\n            \"stockQuantity\": 150,\n            \"status\": \"published\"\n        },\n        {\n            \"name\": \"Mechanical Keyboard\",\n            \"description\": \"RGB mechanical keyboard with blue switches\",\n            \"price\": 129.99,\n            \"compareAtPrice\": 159.99,\n            \"category\": \"Electronics\",\n            \"brand\": \"KeyMaster\",\n            \"stockQuantity\": 80,\n            \"status\": \"published\",\n            \"isFeatured\": true\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products/bulk",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products", "bulk"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Error Handling Tests",
+      "item": [
+        {
+          "name": "Unauthorized Access (No Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function() {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Error message returned', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.false;",
+                  "  pm.expect(jsonData.message).to.include('No token');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Product ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function() {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Product not found error', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.false;",
+                  "  pm.expect(jsonData.message).to.include('not found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/products/invalid-id-123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "products", "invalid-id-123"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order Without Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Validation error returned', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.be.false;",
+                  "  pm.expect(jsonData.message).to.include('Validation');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"items\": [],\n    \"shippingAddress\": {\n        \"street\": \"123 Main St\",\n        \"city\": \"New York\",\n        \"state\": \"NY\",\n        \"postalCode\": \"10001\",\n        \"country\": \"USA\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/orders",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "orders"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId3",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productSku",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderNumber",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
